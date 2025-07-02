@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('discord.js');
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, getVoiceConnection } = require('@discordjs/voice');
 const ytdl = require('ytdl-core');
 const playdl = require('play-dl');
+const playerHandler = require('../../handlers/playerHandler');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -18,41 +18,26 @@ module.exports = {
     const voiceChannel = interaction.member.voice.channel;
 
     if (!voiceChannel) {
-      return interaction.reply({ content: '🔊 Debes estar en un canal de voz para usar este comando.', ephemeral: true });
+      return interaction.reply({ content: '🔊 Debes estar en un canal de voz.', ephemeral: true });
     }
 
     await interaction.deferReply();
 
     let url = query;
+    let title = '';
 
     // Si no es URL, buscar por nombre
     if (!ytdl.validateURL(query)) {
-      const search = await playdl.search(query, { limit: 1 });
-      if (!search[0]) return interaction.editReply('❌ No se encontraron resultados.');
-      url = search[0].url;
+      const result = await playdl.search(query, { limit: 1 });
+      if (!result[0]) return interaction.editReply('❌ No se encontró ningún resultado.');
+      url = result[0].url;
+      title = result[0].title;
+    } else {
+      const info = await ytdl.getInfo(query);
+      title = info.videoDetails.title;
     }
 
-    // Conectar al canal de voz
-    const connection = joinVoiceChannel({
-      channelId: voiceChannel.id,
-      guildId: interaction.guild.id,
-      adapterCreator: interaction.guild.voiceAdapterCreator,
-    });
-
-    const stream = await playdl.stream(url);
-    const resource = createAudioResource(stream.stream, {
-      inputType: stream.type
-    });
-
-    const player = createAudioPlayer();
-
-    player.play(resource);
-    connection.subscribe(player);
-
-    player.on(AudioPlayerStatus.Idle, () => {
-      connection.destroy();
-    });
-
-    await interaction.editReply(`🎶 Reproduciendo: **${url}**`);
+    await playerHandler.handle(interaction, url, title);
   }
 };
+
