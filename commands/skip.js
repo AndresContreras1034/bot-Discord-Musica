@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
+const isDJ = require('../../utils/isDJ');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -6,17 +7,17 @@ module.exports = {
     .setDescription('Salta la canción actual (si hay otra en cola).'),
 
   async execute(interaction) {
-    const queue = interaction.client.queues.get(interaction.guild.id);
-
-    if (!queue || queue.songs.length <= 1) {
-      return interaction.reply('❌ No hay más canciones en la cola para saltar.');
+    if (!isDJ(interaction)) {
+      return interaction.reply({ content: '🎧 Solo usuarios con rol DJ pueden usar este comando.', ephemeral: true });
     }
 
-    // Remover la actual
-    queue.songs.shift();
+    const queue = interaction.client.queues.get(interaction.guild.id);
+    if (!queue || queue.songs.length <= 1) {
+      return interaction.reply('❌ No hay más canciones en la cola.');
+    }
 
-    // Ejecutar la siguiente
-    queue.player.stop(); // Se activa el evento .on(AudioPlayerStatus.Idle)
+    queue.songs.shift();
+    queue.player.stop();
     return interaction.reply('⏭️ Canción saltada.');
   }
 };
