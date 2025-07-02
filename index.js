@@ -2,8 +2,6 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
-client.queues = new Map();
-
 
 const client = new Client({
   intents: [
@@ -15,8 +13,9 @@ const client = new Client({
   partials: [Partials.Channel]
 });
 
-// Colección de comandos slash
+// Inicializar estructuras personalizadas
 client.commands = new Collection();
+client.queues = new Map(); // ¡esto va después de crear el cliente!
 
 // Cargar manejador de comandos
 const commandHandler = require('./handlers/commandHandler');
@@ -35,3 +34,4 @@ fs.readdirSync(eventsPath).forEach(file => {
 
 // Iniciar sesión
 client.login(process.env.DISCORD_TOKEN);
+
