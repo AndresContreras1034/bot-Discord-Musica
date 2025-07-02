@@ -14,13 +14,24 @@ module.exports = {
     const nombres = Object.keys(playlists);
 
     if (nombres.length === 0) {
-      return interaction.reply('📭 No tienes playlists guardadas.');
+      return interaction.reply({
+        embeds: [
+          new EmbedBuilder()
+            .setColor('Red')
+            .setTitle('📭 No tienes playlists guardadas')
+            .setDescription('Usa `/playlist save` para guardar una.')
+        ]
+      });
     }
 
     const embed = new EmbedBuilder()
+      .setColor('Aqua')
       .setTitle(`📂 Playlists de ${interaction.user.username}`)
-      .setDescription(nombres.map(name => `🎵 ${name} (${playlists[name].length} canciones)`).join('\n'))
-      .setColor('Blue');
+      .setDescription(
+        nombres.map(name => `🎵 **${name}** — ${playlists[name].length} canciones`).join('\n')
+      )
+      .setFooter({ text: `Total: ${nombres.length} playlists` })
+      .setTimestamp();
 
     return interaction.reply({ embeds: [embed] });
   }
