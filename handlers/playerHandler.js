@@ -1,46 +1,54 @@
-const { 
-  joinVoiceChannel, 
-  createAudioPlayer, 
-  createAudioResource, 
-  AudioPlayerStatus, 
-  NoSubscriberBehavior 
+const {
+  joinVoiceChannel,
+  createAudioPlayer,
+  createAudioResource,
+  AudioPlayerStatus,
+  NoSubscriberBehavior
 } = require('@discordjs/voice');
 
 const playdl = require('play-dl');
 
 async function playSong(interaction, song, queueData) {
-  const stream = await playdl.stream(song.url);
-  const resource = createAudioResource(stream.stream, {
-    inputType: stream.type
-  });
+  try {
+    const stream = await playdl.stream(song.url);
+    const resource = createAudioResource(stream.stream, {
+      inputType: stream.type,
+      inlineVolume: true // permite controlar el volumen luego
+    });
 
-  const player = createAudioPlayer({
-    behaviors: {
-      noSubscriber: NoSubscriberBehavior.Pause,
-    }
-  });
+    const player = createAudioPlayer({
+      behaviors: {
+        noSubscriber: NoSubscriberBehavior.Pause,
+      }
+    });
 
-  queueData.player = player;
-  queueData.connection.subscribe(player);
-  player.play(resource);
+    queueData.player = player;
+    queueData.connection.subscribe(player);
+    player.play(resource);
 
-  player.on(AudioPlayerStatus.Idle, async () => {
-    if (queueData.loop) {
-      await playSong(interaction, queueData.songs[0], queueData); // Repetir misma canción
-      return;
-    }
+    player.on(AudioPlayerStatus.Idle, async () => {
+      if (queueData.loop) {
+        await playSong(interaction, queueData.songs[0], queueData); // repetir la misma
+        return;
+      }
 
-    queueData.songs.shift();
+      queueData.songs.shift();
 
-    if (queueData.songs.length > 0) {
-      await playSong(interaction, queueData.songs[0], queueData);
-    } else {
-      queueData.connection.destroy();
-      interaction.client.queues.delete(interaction.guild.id);
-    }
-  });
+      if (queueData.songs.length > 0) {
+        await playSong(interaction, queueData.songs[0], queueData);
+      } else {
+        queueData.connection.destroy();
+        interaction.client.queues.delete(interaction.guild.id);
+      }
+    });
 
-  return interaction.editReply(`🎶 Reproduciendo: **${song.title}**`);
+    return interaction.editReply(`🎶 Reproduciendo: **${song.title}**`);
+  } catch (error) {
+    console.error(`❌ Error al reproducir ${song.title}:`, error);
+    queueData.connection?.destroy();
+    interaction.client.queues.delete(interaction.guild.id);
+    return interaction.editReply('⚠️ Hubo un error al reproducir esta canción.');
+  }
 }
 
 module.exports = {
@@ -73,3 +81,4 @@ module.exports = {
     }
   }
 };
+
