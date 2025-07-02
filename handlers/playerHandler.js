@@ -1,4 +1,11 @@
-const { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, NoSubscriberBehavior } = require('@discordjs/voice');
+const { 
+  joinVoiceChannel, 
+  createAudioPlayer, 
+  createAudioResource, 
+  AudioPlayerStatus, 
+  NoSubscriberBehavior 
+} = require('@discordjs/voice');
+
 const playdl = require('play-dl');
 
 async function playSong(interaction, song, queueData) {
@@ -18,7 +25,13 @@ async function playSong(interaction, song, queueData) {
   player.play(resource);
 
   player.on(AudioPlayerStatus.Idle, async () => {
+    if (queueData.loop) {
+      await playSong(interaction, queueData.songs[0], queueData); // Repetir misma canción
+      return;
+    }
+
     queueData.songs.shift();
+
     if (queueData.songs.length > 0) {
       await playSong(interaction, queueData.songs[0], queueData);
     } else {
@@ -48,7 +61,8 @@ module.exports = {
       queue = {
         connection,
         songs: [song],
-        player: null
+        player: null,
+        loop: false
       };
 
       interaction.client.queues.set(guildId, queue);
